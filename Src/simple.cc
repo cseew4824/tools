@@ -8,6 +8,8 @@ namespace simple
     uint8_t     	MEM[N];     		// memory is an array of N bytes
     uint32_t   	 	GPR[8];     		// 8 x 32-bit general purpose registers
 
+    const uint32_t	latencies::MEM = 300;	// main memory latency
+
     flags_t	flags;				// flags
 
     uint32_t    CIA; 				// current instruction address
@@ -31,12 +33,18 @@ namespace simple
     {
 	uint32_t EA = GPR[RA];
 	GPR[RT] = MEM[EA];
+
+	instructions++;
+	cycles += latencies::MEM;
     }
 
     void stb(int RS, int RA)                	// store byte from register
     {
 	uint32_t EA = GPR[RA];
 	MEM[EA] = GPR[RS] & 0xff;
+
+	instructions++;
+	cycles += latencies::MEM;
     }
 
     void cmpi(int RA, int16_t SI)           	// compare the contents of a register with a signed integer
@@ -45,11 +53,17 @@ namespace simple
 	if      (GPR[RA] < SI) flags.LT = true;
 	else if (GPR[RA] > SI) flags.GT = true;
 	else   		       flags.EQ = true;
+
+	instructions++;
+	cycles++;
     }
 
     void addi(int RT, int RA, int16_t SI)   	// add the contents of a register to a signed integer
     {
 	GPR[RT] = GPR[RA] + SI;
+
+	instructions++;
+	cycles++;
     }
 
 #undef beq

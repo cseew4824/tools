@@ -20,7 +20,7 @@ int main
 	simple::zeroctrs();
 	simple::memcpy(0,0,0);
 	
-	printf("n = %d : instructions = %lu, cycles = %lu :", n, simple::instructions, simple::cycles);
+	printf("n = %6d : instructions = %6lu, cycles = %6lu :", n, simple::instructions, simple::cycles);
 	bool pass = true;
 	for (uint32_t i=0; i<n; i++) if (simple::MEM[i] != simple::MEM[N+i]) pass = false;
 	if (pass) printf("PASS\n");

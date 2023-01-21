@@ -10,6 +10,11 @@ namespace simple
     extern uint8_t     		MEM[];  	// memory is an array of N bytes
     extern uint32_t   	 	GPR[8];     	// 8 x 32-bit general purpose registers
 
+    namespace latencies
+    {
+	extern const uint32_t MEM;
+    };
+
     typedef enum
     {
 	r0 = 0,
