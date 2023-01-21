@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include<stdint.h>
+#include<simple.hh>
 
 namespace simple
 {
@@ -7,12 +8,7 @@ namespace simple
     uint8_t     	MEM[N];     		// memory is an array of N bytes
     uint32_t   	 	GPR[8];     		// 8 x 32-bit general purpose registers
 
-    struct
-    {
-	bool    LT;     			// less than
-	bool    GT;     			// greater than
-	bool    EQ;     			// equal to
-    } Flags;					// flags
+    flags_t	flags;				// flags
 
     uint32_t    CIA; 				// current instruction address
     uint32_t    NIA;    			// next instruction address
@@ -45,10 +41,10 @@ namespace simple
 
     void cmpi(int RA, int16_t SI)           	// compare the contents of a register with a signed integer
     {
-	Flags.LT = false; Flags.GT = false; Flags.EQ = false;
-	if      (GPR[RA] < SI) Flags.LT = true;
-	else if (GPR[RA] > SI) Flags.GT = true;
-	else   Flags.EQ = true;
+	flags.LT = false; flags.GT = false; flags.EQ = false;
+	if      (GPR[RA] < SI) flags.LT = true;
+	else if (GPR[RA] > SI) flags.GT = true;
+	else   		       flags.EQ = true;
     }
 
     void addi(int RT, int RA, int16_t SI)   	// add the contents of a register to a signed integer
@@ -56,12 +52,14 @@ namespace simple
 	GPR[RT] = GPR[RA] + SI;
     }
 
+#undef beq
     bool beq(int16_t BD)                    	// branch if comparison resuts was "equal"
     {
-	if (Flags.EQ) { NIA = CIA + BD; return true; }
+	if (flags.EQ) { NIA = CIA + BD; return true; }
 	return false;
     }
 
+#undef b
     bool b(int16_t BD)                      	// unconditional branch
     {
 	NIA = CIA + BD;

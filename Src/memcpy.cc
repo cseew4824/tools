@@ -3,7 +3,6 @@
 
 namespace simple
 {
-
     void *memcpy                // GPR[3]
     (
         void            *dest,  // GPR[3]
@@ -22,5 +21,4 @@ loop:   cmpi(r5, 0);            // n == 0?
         b(loop);                // end while
 end:    return dest;
     }
-
 };
