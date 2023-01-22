@@ -18,6 +18,7 @@ int main
 	simple::GPR[5] = n;
 	
 	simple::zeroctrs();
+	simple::caches::L1.clear();
 	simple::memcpy(0,0,0);
 	
 	printf("n = %6d : instructions = %6lu, cycles = %6lu, L1 accesses= %6lu, L1 hits = %6lu :",
