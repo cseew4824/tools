@@ -88,6 +88,7 @@ namespace simple
 		uint32_t	capacity() const;	// in bytes
 		array&		sets();			// cache array
 		bool		hit(uint32_t);		// tests for address hit in cache
+		void		clear();		// clear the cache
 	};
 
 	extern cache L1;

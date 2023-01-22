@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include<stdint.h>
+#include<assert.h>
 #include<simple.hh>
 
 namespace simple
@@ -12,7 +13,7 @@ namespace simple
     const uint32_t	latencies::L1  =   2;		// L1 cache latency
     const uint32_t	params::L1::nsets = 32;		// L1 number of sets
     const uint32_t	params::L1::nways = 8;		// L1 number of ways
-    const uint32_t	params::L1::linesize = 1;	// L1 line size (bytes)
+    const uint32_t	params::L1::linesize = 128;	// L1 line size (bytes)
 
     namespace caches
     {
@@ -27,6 +28,17 @@ namespace simple
 	    entry empty; empty.valid = false; empty.touched = 0;
 	    set   init(nways); for (uint32_t i=0; i<nways; i++) init[i] = empty;
 	    for (uint32_t i=0; i<nsets; i++) _sets[i] = init;
+	}
+
+	void cache::clear()
+	{
+	    for (uint32_t setix=0; setix<nsets(); setix++)
+		for (uint32_t wayix=0; wayix<nways(); wayix++)
+		{
+		    sets()[setix][wayix].valid = false;
+		    sets()[setix][wayix].touched = 0;
+		    sets()[setix][wayix].addr = 0;
+		}
 	}
 
 	uint32_t cache::linesize() const
@@ -52,15 +64,48 @@ namespace simple
 	bool cache::hit(uint32_t addr)
 	{
 	    counters::L1::accesses++;
-	    uint32_t lineaddr = addr % linesize();
+	    uint32_t lineaddr = addr / linesize();
 	    uint32_t setix = lineaddr % nsets();
 	    uint32_t wayix;
 	    for (wayix = 0; wayix < nways(); wayix++)
 	    {
-		if (sets()[setix][wayix].valid && (sets()[setix][wayix].addr == addr)) break;
+		if (sets()[setix][wayix].valid && (sets()[setix][wayix].addr == lineaddr)) break;
 	    }
-	    if      (wayix < nways())	{ counters::L1::hits++; sets()[setix][wayix].touched = cycles; return true; }
-	    else			{ counters::L1::misses++; return false; }
+	    if      (wayix < nways())
+	    {
+		// L1 cache hit
+		counters::L1::hits++;
+		sets()[setix][wayix].touched = cycles;
+		return true;
+	    }
+	    else
+	    {
+		// L1 cache miss
+		counters::L1::misses++;
+		// find the LRU entry
+		uint64_t lasttouch = cycles;
+		uint32_t lru = nways();
+		for (wayix = 0; wayix < nways(); wayix++)
+		{
+		    if (!sets()[setix][wayix].valid)
+		    {
+			// invalid entry, can use this one as the lru
+			lru = wayix;
+			break;
+		    }
+		    if (sets()[setix][wayix].touched <= lasttouch)
+		    {
+			// older than current candidate - update
+			lru = wayix;
+			lasttouch = sets()[setix][wayix].touched;
+		    }
+		}
+		assert(lru < nways());
+		sets()[setix][lru].valid = true;
+		sets()[setix][lru].addr = lineaddr;
+		sets()[setix][lru].touched = cycles;
+		return false;
+	    }
 	}
     };
 
