@@ -3,6 +3,7 @@
 
 #include<stdlib.h>
 #include<stdint.h>
+#include<vector>
 
 namespace simple
 {
@@ -13,6 +14,27 @@ namespace simple
     namespace latencies
     {
 	extern const uint32_t MEM;
+	extern const uint32_t L1;
+    };
+
+    namespace params
+    {
+	namespace L1
+	{
+	    extern const uint32_t nsets;
+	    extern const uint32_t nways;
+	    extern const uint32_t linesize;
+	};
+    };
+
+    namespace counters
+    {
+	namespace L1
+	{
+	    extern uint64_t hits;
+	    extern uint64_t misses;
+	    extern uint64_t accesses;
+	};
     };
 
     typedef enum
@@ -35,6 +57,41 @@ namespace simple
     } flags_t;					// flags
 
     extern flags_t	flags;
+
+    namespace caches
+    {
+	class entry				// cache entry
+	{
+	    public:
+		bool		valid;		// is entry valid?
+		uint32_t	addr;		// address of this entry
+		uint64_t	touched;	// last time this entry was used
+	};
+
+	typedef std::vector<entry>	set;
+	typedef std::vector<set>	array;
+
+	class cache
+	{
+	    private:
+		uint32_t	_nsets;
+		uint32_t	_nways;
+		uint32_t	_linesize;
+		array		_sets;
+
+	    public:
+		cache(uint32_t nsets, uint32_t nways, uint32_t linesize);
+
+		uint32_t	nsets() const;		// number of sets
+		uint32_t	nways() const;		// number of ways
+		uint32_t	linesize() const;	// in bytes
+		uint32_t	capacity() const;	// in bytes
+		array&		sets();			// cache array
+		bool		hit(uint32_t);		// tests for address hit in cache
+	};
+
+	extern cache L1;
+    };
 
     extern uint32_t     CIA; 			// current instruction address
     extern uint32_t     NIA;   			// next instruction address

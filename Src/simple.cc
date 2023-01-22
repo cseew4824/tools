@@ -4,11 +4,65 @@
 
 namespace simple
 {
-    const uint32_t 	N = 65536;		// 64 KiB memory
-    uint8_t     	MEM[N];     		// memory is an array of N bytes
-    uint32_t   	 	GPR[8];     		// 8 x 32-bit general purpose registers
+    const uint32_t 	N = 65536;			// 64 KiB memory
+    uint8_t     	MEM[N];     			// memory is an array of N bytes
+    uint32_t   	 	GPR[8];     			// 8 x 32-bit general purpose registers
 
-    const uint32_t	latencies::MEM = 300;	// main memory latency
+    const uint32_t	latencies::MEM = 300;		// main memory latency
+    const uint32_t	latencies::L1  =   2;		// L1 cache latency
+    const uint32_t	params::L1::nsets = 32;		// L1 number of sets
+    const uint32_t	params::L1::nways = 8;		// L1 number of ways
+    const uint32_t	params::L1::linesize = 1;	// L1 line size (bytes)
+
+    namespace caches
+    {
+        cache	L1(params::L1::nsets, params::L1::nways, params::L1::linesize);
+
+	cache::cache(uint32_t nsets, uint32_t nways, uint32_t linesize) : _sets(nsets)
+	{
+	    _nsets = nsets;
+	    _nways = nways;
+	    _linesize = linesize;
+
+	    entry empty; empty.valid = false; empty.touched = 0;
+	    set   init(nways); for (uint32_t i=0; i<nways; i++) init[i] = empty;
+	    for (uint32_t i=0; i<nsets; i++) _sets[i] = init;
+	}
+
+	uint32_t cache::linesize() const
+	{
+	    return _linesize;
+	}
+
+	uint32_t cache::nsets() const
+	{
+	    return _nsets;
+	}
+
+	uint32_t cache::nways() const
+	{
+	    return _nways;
+	}
+
+	array &cache::sets()
+	{
+	    return _sets;
+	}
+
+	bool cache::hit(uint32_t addr)
+	{
+	    counters::L1::accesses++;
+	    uint32_t lineaddr = addr % linesize();
+	    uint32_t setix = lineaddr % nsets();
+	    uint32_t wayix;
+	    for (wayix = 0; wayix < nways(); wayix++)
+	    {
+		if (sets()[setix][wayix].valid && (sets()[setix][wayix].addr == addr)) break;
+	    }
+	    if      (wayix < nways())	{ counters::L1::hits++; sets()[setix][wayix].touched = cycles; return true; }
+	    else			{ counters::L1::misses++; return false; }
+	}
+    };
 
     flags_t	flags;				// flags
 
@@ -17,6 +71,9 @@ namespace simple
 
     uint64_t	instructions = 0;		// instruction counter
     uint64_t	cycles = 0;			// cycle counter
+    uint64_t	counters::L1::hits = 0;		// L1 hits
+    uint64_t	counters::L1::misses = 0;	// L1 misses
+    uint64_t	counters::L1::accesses = 0;	// L1 accesses
 
     void zeromem()
     {
@@ -27,6 +84,9 @@ namespace simple
     {
 	instructions = 0;
 	cycles = 0;
+	counters::L1::accesses = 0;
+	counters::L1::hits = 0;
+	counters::L1::misses = 0;
     }
 
     void lbz(int RT, int RA)                	// load byte and zero-extend into a register
@@ -35,7 +95,8 @@ namespace simple
 	GPR[RT] = MEM[EA];
 
 	instructions++;
-	cycles += latencies::MEM;
+	if (caches::L1.hit(EA)) cycles += latencies::L1;
+	else                    cycles += latencies::MEM;
     }
 
     void stb(int RS, int RA)                	// store byte from register
@@ -44,7 +105,8 @@ namespace simple
 	MEM[EA] = GPR[RS] & 0xff;
 
 	instructions++;
-	cycles += latencies::MEM;
+	if (caches::L1.hit(EA)) cycles += latencies::L1;
+	else                    cycles += latencies::MEM;
     }
 
     void cmpi(int RA, int16_t SI)           	// compare the contents of a register with a signed integer
