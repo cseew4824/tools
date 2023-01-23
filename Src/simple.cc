@@ -56,6 +56,11 @@ namespace simple
 	    return _nways;
 	}
 
+	uint32_t cache::capacity() const
+	{
+	    return _nsets * _nways * _linesize;
+	}
+
 	array &cache::sets()
 	{
 	    return _sets;

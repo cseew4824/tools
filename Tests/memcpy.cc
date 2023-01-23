@@ -8,6 +8,8 @@ int main
     char	**argv
 )
 {
+    printf("L1: %u bytes of capacity, %u sets, %u-way set associative, %u-byte line size\n", 
+	   simple::caches::L1.capacity(), simple::caches::L1.nsets(), simple::caches::L1.nways(), simple::caches::L1.linesize());
     simple::zeromem();
     const uint32_t N = 1024;
     for (uint32_t i=0; i<N; i++) simple::MEM[i] = rand() % 0xff;
